@@ -38,7 +38,7 @@ module Pod
             project_is_dirty = [
               XCConfigIntegrator.integrate(target, native_targets),
               update_to_cocoapods_0_34,
-              remove_embed_frameworks_script_phases,
+              update_to_cocoapods_0_39,
               unless native_targets_to_integrate.empty?
                 add_pods_library
                 add_embed_frameworks_script_phase
@@ -100,6 +100,26 @@ module Pod
           changes
         end
 
+
+        # Adds the embed frameworks script when integrating as a static library.
+        #
+        # @return [Bool] whether any changes to the project were made.
+        #
+        # @todo   This can be removed for CocoaPods 1.0
+        #
+        def update_to_cocoapods_0_39
+          targets_to_embed_in = native_targets_to_integrate.select do |target|
+            EMBED_FRAMEWORK_TARGET_TYPES.include?(target.symbol_type)
+          end
+          requires_update = targets_to_embed_in.any? do |target|
+            !target.shell_script_build_phases.find { |bp| bp.name == 'Embed Pods Frameworks' }
+          end
+          if requires_update
+            add_embed_frameworks_script_phase
+            true
+          end
+        end
+
         # Adds spec product reference to the frameworks build phase of the
         # {TargetDefinition} integration libraries. Adds a file reference to
         # the frameworks group of the project and adds it to the frameworks
@@ -150,28 +170,6 @@ module Pod
             script_path = target.embed_frameworks_script_relative_path
             phase.shell_script = %("#{script_path}"\n)
           end
-        end
-
-        # Delete 'Embed Pods Frameworks' Build Phases, if they exist
-        # and are not needed anymore due to not integrating the
-        # dependencies by frameworks.
-        #
-        # @return [Bool] whether any changes to the project were made.
-        #
-        def remove_embed_frameworks_script_phases
-          return false if target.requires_frameworks?
-
-          phase_name = 'Embed Pods Frameworks'
-          result = false
-
-          native_targets.each do |native_target|
-            embed_build_phase = native_target.shell_script_build_phases.find { |bp| bp.name == phase_name }
-            next unless embed_build_phase.present?
-            native_target.build_phases.delete(embed_build_phase)
-            result = true
-          end
-
-          result
         end
 
         # Adds a shell script build phase responsible to copy the resources

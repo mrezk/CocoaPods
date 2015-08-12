@@ -123,7 +123,7 @@ module Pod
           phase.nil?.should == true
         end
 
-        it 'removes existing embed frameworks build phases from integrated framework targets' do
+        it 'does not remove existing embed frameworks build phases from integrated framework targets' do
           @pod_bundle.stubs(:requires_frameworks? => true)
           @target_integrator.integrate!
           @pod_bundle.stubs(:requires_frameworks? => false)
@@ -131,7 +131,7 @@ module Pod
           target.stubs(:symbol_type).returns(:framework)
           @target_integrator.integrate!
           phase = target.shell_script_build_phases.find { |bp| bp.name == 'Embed Pods Frameworks' }
-          phase.nil?.should == true
+          phase.should.not.be.nil
         end
 
         it 'does not remove existing embed frameworks build phases if frameworks are not used anymore' do
