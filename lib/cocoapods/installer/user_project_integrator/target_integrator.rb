@@ -100,7 +100,6 @@ module Pod
           changes
         end
 
-
         # Adds the embed frameworks script when integrating as a static library.
         #
         # @return [Bool] whether any changes to the project were made.
